@@ -2,7 +2,7 @@ import QtQuick 2.9
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 6.0
 import QtQuick.Dialogs
-import Qt5Compat.GraphicalEffects
+import Qt.labs.platform
 
 Window {
     id: mainWindow
@@ -14,9 +14,11 @@ Window {
     flags:  Qt.Window | Qt.WindowMinimizeButtonHint | Qt.FramelessWindowHint
 
     property bool activeWindow: true
+    property bool findKPub: false
 
+    property string nameToolTip: ""
     property string nameAction: ""
-    property string nameSing: ""
+    property string nameSign: ""
     property string nameVeri: ""
     property string nameChose: ""
     property string nameFile: ""
@@ -29,9 +31,16 @@ Window {
     property string nameSaveArch: ""
     property string nameLoadArch: ""
     property string nameWait: ""
+    property string namePrivKeyFilter: ""
+    property string nameSignFinal: ""
+    property string nameSlctVerFile: ""
+    property string nameSlctPubKey: ""
+    property string nameSlctSign: ""
+    property string namePubKey: ""
+    property string nameSignFile: ""
+    property string folderPath: ""
 
-    property color tmpEncodingClr: "#fff"
-    property color tmpDecodingClr: "#fff"
+    property var nameZip: []
 
     readonly property color myUpperBar: "#1a1512"
     readonly property color myBackground: "#201e1b"
@@ -41,56 +50,7 @@ Window {
     readonly property color myCloseImg: "#fcf8fe"
     readonly property color myCloseBtn: "#de2f05"
 
-    property bool wasEncodedText: false
-    property bool wasOpenText: false
-    property bool wasNkeyD: false
-    property bool wasNkeyE: false
-    property bool wasDKey: false
-    property bool wasEKey: false
-    property bool wasEncDone: false
-    property bool wasDecDone: false
 
-    /*function getX(x){
-        if(!lang.running && !timeline.enabled){
-            let tmp = x - 150
-            if (tmp > 0) {
-                return tmp
-            } else {
-                return 0
-            }
-        } else {
-            return myX
-        }
-    }
-
-    function getOldX(x){
-        if(!lang.running && !timeline.enabled){
-            return x
-        } else {
-            return myOldX
-        }
-    }
-
-    function getY(y){
-        if(!lang.running && !timeline.enabled){
-            let tmp = y - 114
-            if (tmp > 0) {
-                return tmp
-            } else {
-                return 0
-            }
-        } else {
-            return myY
-        }
-    }
-
-    function getOldY(y){
-        if(!lang.running && !timeline.enabled){
-            return y
-        } else {
-            return myOldY
-        }
-    }*/
 
     Flickable {
         id: flickable
@@ -256,14 +216,42 @@ Window {
                     }
 
                     Button {
+                        id: home
                         anchors.left: parent.left
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
                         height: 30
                         width: 30
+                        enabled: false
+                        ToolTip {
+                            text: nameToolTip
+                            enabled: parent.enabled
+
+                            visible: parent.hovered && parent.enabled
+                            background: Rectangle {
+                                color: myBackground2
+                                border.color: myHighLighht
+                                radius: 4
+                               
+                                Label {
+                                    color: "#F9D800"
+                                    font.pointSize: 12
+                                    font.family: "Roboto Medium"
+                                    anchors.fill: parent
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    anchors.rightMargin: 2
+                                    anchors.leftMargin: 2
+                                    anchors.bottomMargin: 2
+                                    anchors.topMargin: 2
+                                }
+                                
+                            }
+                            
+                        }
                         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                         background: Rectangle{
-                            color: parent.pressed ? Qt.tint(Qt.lighter(myUpperBar, 2.5), "#100c03FF") : (parent.hovered ? Qt.tint(Qt.lighter(myUpperBar, 3), "#100c03FF") : myUpperBar)
+                            color: parent.enabled ? (parent.pressed ? Qt.tint(Qt.lighter(myUpperBar, 2.5), "#100c03FF") : (parent.hovered ? Qt.tint(Qt.lighter(myUpperBar, 3), "#100c03FF") : myUpperBar)) : myUpperBar
                             radius: 4
                             Rectangle {
                                 width: 30
@@ -296,7 +284,12 @@ Window {
                             }
                            
                         }
-                        onClicked: stack.pop(lang)
+
+                        
+                        onClicked: {
+                            stack.pop(lang)
+                            home.enabled = false
+                        }
                     }
                 }
                 
@@ -318,50 +311,70 @@ Window {
                         id: lang
                         visible: true
                         onButtonClicked: {
-                            stack.push(singVerify)
+                            stack.push(signVerify)
+                            home.enabled = true
                         }
                     }
 
-                    SingVerify {
-                        id: singVerify
+                    SignVerify {
+                        id: signVerify
                         visible: false
-                        onSing: {
-                            stack.push(sing)
+                        onSign: {
+                            stack.push(sign)
                         }
                         onVerify: {
                             stack.push(verify)
                         }
                     }
 
-                    Sing {
-                        id: sing
+                    Sign {
+                        id: sign
+                        visible: false
+                        onButtonFile: {
+                            stack.push(proc)
+                            signFile.visible = true
+                        }
+                        onButtonFolder: {
+                            stack.push(proc)
+                            signFolder.visible = true
+                        }
+                    }
+                    SignFolder {
+                        id: signFolderPage
                         visible: false
                         onButtonClicked: {
-                            stack.push(singKey)
+                            stack.push(signKey)
                         }
                     }
 
-                    SingKey {
-                        id: singKey
+                    SignKey {
+                        id: signKey
                         visible: false
-                        onButtonClicked: {
-                            stack.push(singSave)
+                        onSelect: {
+                            stack.push(proc)
+                            getPriv.visible = true
+                        }
+                        onGen: {
+                            stack.push(proc)
+                            genKey.visible = true
                         }
                     }
 
-                    SingSave {
-                        id: singSave
+                    
+
+                    SignSave {
+                        id: signSave
                         visible: false
                         onButtonClicked: {
-                            stack.push(singSaveAs)
+                            stack.push(signSaveAs)
                         }
                     }
 
-                    SingSaveAs{
-                        id: singSaveAs
+                    SignSaveAs{
+                        id: signSaveAs
                         visible: false
                         onButtonClicked: {
-                            stack.push(singSaveAs)
+                            stack.push(chose)
                         }
                     }
 
@@ -369,8 +382,23 @@ Window {
                         id: verify
                         visible: false
                         onButtonClicked: {
+                            home.enabled = false
                             stack.push(proc)
+                            getVerFile.visible = true
                         }
+
+                    SignChose {
+                        id: chose
+                        visible: false
+                        onButtonClicked: {
+                            stack.push(signFinal)
+                        }
+                    }
+
+                    SignFinal {
+                        id: signFinal
+                        visible:false
+                    }
 
                     Processing {
                         id: proc
@@ -399,35 +427,176 @@ Window {
         }
     }
 
+    FileDialog {
+        id: signFile 
+        visible: false
+        //nameFilters: [ "Text files (*.txt)"]
+        flags: FileDialog.ReadOnly
+        onAccepted: {
+            //var url = /String(fileDialog.currentFile)
+            //var index = 0
+            //var urlCh = url.split("")
+            //for (let i =0; i <url.length; i++){
+            //    if(urlCh[i] === "/") {index = i + 1;}
+            //}
+            //var filename = url.substring(index);
+            //fileState.text = filename
+            //fileState2.text = filename
+            myData.getFile(signFile.currentFile)
+            stack.push(signKey)
+        }
+        onRejected: {
+            stack.pop(sign)
+        }
+    }
+
+    FileDialog {
+        id: getPriv 
+        visible: false
+        nameFilters: [namePrivKeyFilter]
+        flags: FileDialog.ReadOnly
+        onAccepted: {
+            //var url = /String(fileDialog.currentFile)
+            //var index = 0
+            //var urlCh = url.split("")
+            //for (let i =0; i <url.length; i++){
+            //    if(urlCh[i] === "/") {index = i + 1;}
+            //}
+            //var filename = url.substring(index);
+            //fileState.text = filename
+            //fileState2.text = filename
+            
+            stack.push(signKey)
+        }
+        onRejected: {
+            stack.pop(sign)
+        }
+    }
+
+    FileDialog {
+        id: getVerFile 
+        visible: false
+        title: nameSlctVerFile
+        flags: FileDialog.ReadOnly
+        onAccepted: {
+            myData.findKeyPub(getVerFile.currentFile)
+            if (findKPub) {
+                stack.push(signKey)
+            } else {
+                getPubKeyFile.visible = true
+            }
+        }
+        onRejected: {
+            stack.pop(verify)
+        }
+    }
+
+    FileDialog {
+        id: getPubKeyFile 
+        visible: false
+        flags: FileDialog.ReadOnly
+        title: nameSlctPubKey
+        nameFilters: [namePubKey]
+        onAccepted: {
+            myData.findKeyPub(getVerFile.currentFile)
+            if (findKPub) {
+                stack.push(signKey)
+            } else {
+                stack.pop(verify)
+            }
+        }
+        onRejected: {
+            stack.pop(verify)
+        }
+    }
+
+    FileDialog {
+        id: getSignFile 
+        visible: false
+        flags: FileDialog.ReadOnly
+        title: nameSlctSign
+        nameFilters: [nameSignFile]
+        onAccepted: {
+            myData.findKeyPub(getVerFile.currentFile)
+            if (findKPub) {
+                stack.push(signKey)
+            } else {
+                stack.pop(verify)
+            }
+        }
+        onRejected: {
+            stack.pop(verify)
+        }
+    }
+
+    FolderDialog {
+        id: signFolder 
+        visible: false
+        //nameFilters: [ "Text files (*.txt)"]
+        //selectFolder: true
+        options: FolderDialog.ReadOnly
+        onAccepted: {
+            //var url = /String(fileDialog.currentFile)
+            //var index = 0
+            //var urlCh = url.split("")
+            //for (let i =0; i <url.length; i++){
+            //    if(urlCh[i] === "/") {index = i + 1;}
+            //}
+            //var filename = url.substring(index);
+            //fileState.text = filename
+            //fileState2.text = filename
+            folderPath = signFolder.currentFolder
+            stack.push(signFolderPage)
+        }
+        onRejected: {
+            stack.pop(sign)
+        }
+    }
+
+    FolderDialog {
+        id: genKey 
+        visible: false
+        //nameFilters: [ "Text files (*.txt)"]
+        //selectFolder: true
+        //options: FolderDialog.ReadOnly
+        onAccepted: {
+            //var url = /String(fileDialog.currentFile)
+            //var index = 0
+            //var urlCh = url.split("")
+            //for (let i =0; i <url.length; i++){
+            //    if(urlCh[i] === "/") {index = i + 1;}
+            //}
+            //var filename = url.substring(index);
+            //fileState.text = filename
+            //fileState2.text = filename
+            myData.keyGen(genKey.currentFolder)
+            stack.push(signSave)
+        }
+        onRejected: {
+            stack.pop(signKey)
+        }
+    }
+
+
     Connections {
         target: myData
-        function onMyNKey(n) {
-            myNKey = nameNKey + ": " + n
+        function onFindKPub(x) {
+            findKPub = x
         }
-
-        function onMyEKey(e) {
-           myEKey = nameEKey + ": " + e
-        }
-
-        function onMyDKey(d) {
-            myDKey = nameDKey + ": " + d
-        }
-
-        function onMyEncoding(x) {
-            myEncoding = x
-        }
-        function onMyDecoding(y) {
-            myDecoding = y
-        }
+        
+        
     }
 
     Connections {
         target: myLang
+        function onNameToolTip(x) {
+            nameToolTip = x
+        }
         function onNameAction(x) {
             nameAction = x
         }
-        function onNameSing(x) {
-            nameSing = x
+        function onNameSign(x) {
+            nameSign = x
         }
         function onNameVeri(x) {
             nameVeri = x
@@ -464,6 +633,31 @@ Window {
         }
         function onNameWait(x) {
             nameWait = x
+        }
+        function onNamePrivKeyFilter(x) {
+            namePrivKeyFilter = x
+        }
+        function onNameZip(x) {
+            nameZip = x
+        }
+        function onNameSignFinal(x) {
+            nameSignFinal= x
+        }
+        function onNameSlctVerFile(x){
+            nameSlctVerFile = x
+        }
+        function onNameSlctPubKey(x){
+            nameSlctPubKey = x
+        }
+        function onNameSlctSign(x){
+            nameSlctSign = x
+        }
+        function onNamePubKey(x){
+            namePubKey = x
+        }
+        function onNameSignFile(x){
+            nameSignFile = x
+            
         }
     }
 

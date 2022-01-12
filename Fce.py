@@ -3,18 +3,17 @@ import math
 import secrets
 import random
 import string
-from hashlib import sha3_512
-from checksumdir import dirhash
 import base64
 import tarfile
-import py7zr
-import rarfile
+import zipfile
+import re
+from hashlib import sha3_512
 
 
 class RSA():
     digs = string.digits + string.ascii_letters.upper()
 
-    def __init__(self, text, n, d=0, e=0, mode=0):
+    def __init__(self, text, n, d=0, e=0):
         self.text = text
         self.blockText = []
         self.n = n
@@ -22,38 +21,9 @@ class RSA():
         if e:
             self.e = e
             self.enc()
-            if mode:
-                if mode == 1:
-                    myOutput = self.output.split()
-                    tmpOutput = ""
-                    for i in myOutput:
-                        tmp = hex(int(i)).upper()
-                        tmpOutput += tmp[2:len(tmp)] + " "
-                    self.output = tmpOutput
-                else:
-                    myOutput = self.output.split()
-                    tmpOutput = ""
-                    if mode == 2:
-                        base = 16
-                    else:
-                        base = 15
-                    for i in range(len(myOutput)):
-                        tmpOutput += self.int2base(int(myOutput[i]), base)
-                        if i + 1 != len(myOutput):
-                            if mode == 2:
-                                tmpOutput += "G"
-                            else:
-                                tmpOutput += "F"
-                    myOutput = ""
-                    for i in range(len(tmpOutput)):
-                        a = random.random()
-                        if a > 0.9 and (i != 0 or i + 1 != len(tmpOutput)):
-                            myOutput += " "
-                        myOutput += tmpOutput[i]
-                    self.output = myOutput
         else:
             self.d = d
-            self.dec(mode)
+            self.dec()
 
     def blocking(self, block):
         text = self.text
@@ -83,24 +53,15 @@ class RSA():
             myenc += str(pow(intTmp, self.e, self.n)) + " "
         self.output = myenc
 
-    def dec(self, mode):
+    def dec(self):
         mydec = ""
         ' '.join(self.text.split())
         if self.text[-1] == " ":
             self.text = self.text[0:-1]
-        if mode == 1 or mode == 0:
-            self.blockText = self.text.split()
-        elif (mode == 2):
-            self.blockText = self.text.replace(" ", "").split("G")
-        else:
-            self.blockText = self.text.replace(" ", "").split("F")
+        self.blockText = self.text.split()
         for i in self.blockText:
-            if mode == 1 or mode == 2:
-                i = int(i, 16)
-            elif mode == 3:
-                i = int(i, 15)
-            else:
-                i = int(i)
+           
+            i = int(i)
             tmp = bin(pow(int(i), int(self.d), self.n))[
                 2:len(bin(pow(int(i), int(self.d), self.n)))]
             tmp = "0" * (48 - len(tmp)) + tmp
@@ -200,17 +161,15 @@ class genRSAKey():
     def findE(self, D, FiN):
         return pow(D, -1, FiN)
 
-
-def makeHashes(self, path):
+def makeHashes(path):
     o = open(path, "rb")
     hash = sha3_512(o.read())
     o.close()
     return hash.hexdigest()
 
-
 def makePrivPub(path):
-    pub = open(f"{path}key.pub", "wb")
-    priv = open(f"{path}key.priv", "wb")
+    pub = open(f"{path}/key.pub", "wb")
+    priv = open(f"{path}/key.priv", "wb")
     key = genRSAKey()
     nkey = base64.b64encode(bytes(f'{key.N}', "ascii"))
     dkey = base64.b64encode(bytes(f'{key.D}', "ascii"))
@@ -225,13 +184,149 @@ def makePrivPub(path):
     priv.write(privkey)
     pub.close()
     priv.close()
+    print("done")
 
-def makeSign(path, output, keyPath, includePub=False, folder=False):
-    if folder:
-        if os.name == "nt":
-            pass
-        else:
-            pass
-    myhash = makeHashes(path, folder).output
+def makeArchive(output_file, source_file, format="") :
+    source_folder =list_files(source_file)
+    if format != "":
+        with tarfile.open(output_file, format) as tar:
+            for i in source_folder:
+                tar.add(i, "." +i[len(source_file)::])
+        tar.close()
+    else: 
+        with zipfile.ZipFile(output_file, 'w') as zip:
+            for i in source_folder:
+                zip.write(i, "."+i[len(source_file)::])
+            zip.close()
 
-makePrivPub("d:/")
+def list_files(walk_dir):
+    lst = []
+    for root, subdirs, files in os.walk(walk_dir):
+        for filename in files:
+            file_path = os.path.join(root, filename)
+            file_path.replace("\\", "/")
+            lst.append(str(file_path))
+    return lst
+
+def makeSign(path, filePath, privKey, pubPath="", includePub=False ,suffix="", wasFolder=False):
+    # path = new archive path
+    # filePath = signing file
+    # privKey = private key
+    # pubPath = path to pubKey
+    # includePub = include file key.pub
+    
+    # get hash
+    sign = makeHashes(filePath)
+    print(sign)
+
+    # encode hash
+    signString = RSA(sign, privKey[0], e=privKey[1]).output
+
+    # create file "filename".sign
+    tmp = os.path.basename(filePath)
+    tmp2 = tmp.rfind(".")
+    tmp = path + tmp[:tmp2] + ".sign"
+    path = tmp
+    signFile = open(f"{tmp}", "w")
+    signFile.write(str(signString))
+    signFile.close()
+    
+    # make archive
+    if suffix == ".zip":
+        with zipfile.ZipFile(path + suffix, 'w') as zip:
+            zip.write(filePath, os.path.basename(filePath))
+            zip.write(tmp, os.path.basename(tmp))
+            if includePub:
+                zip.write(pubPath, os.path.basename(pubPath))
+            zip.close()
+    elif suffix == ".7z":
+        with zipfile.ZipFile(path + suffix, 'w') as zip:
+            zip.write(filePath, os.path.basename(filePath))
+            zip.write(tmp, os.path.basename(tmp))
+            if includePub:
+                zip.write(pubPath, os.path.basename(pubPath))
+            zip.close()
+    elif suffix == ".rar":
+        with zipfile.ZipFile(path + suffix, 'w') as zip:
+            zip.write(filePath, os.path.basename(filePath))
+            zip.write(tmp, os.path.basename(tmp))
+            if includePub:
+                zip.write(pubPath, os.path.basename(pubPath))
+            zip.close()
+    elif suffix == ".tar.gz":
+        with tarfile.open(path + suffix, format) as tar:
+            tar.add(filePath, os.path.basename(filePath))
+            tar.add(tmp, os.path.basename(tmp))
+            if includePub:
+                tar.add(pubPath, os.path.basename(pubPath))
+            tar.close()
+    elif suffix == ".tar.bz2":
+        with tarfile.open(path + suffix, format) as tar:
+            tar.add(filePath, os.path.basename(filePath))
+            tar.add(tmp, os.path.basename(tmp))
+            if includePub:
+                tar.add(pubPath, os.path.basename(pubPath))
+            tar.close()
+    elif suffix == ".tar.lzma":
+        with tarfile.open(path + suffix, format) as tar:
+            tar.add(filePath + suffix, os.path.basename(filePath))
+            tar.add(tmp, os.path.basename(tmp))
+            if includePub:
+                tar.add(pubPath, os.path.basename(pubPath))
+            tar.close()
+    os.remove(tmp)
+    print(wasFolder)
+    if wasFolder:
+        os.remove(filePath)
+
+
+def IsZip(path):
+    if (".sign.zip" in path or 
+        ".sign.7z" in path or 
+        ".sign.rar" in path):
+        return True
+    else:
+        return False
+
+def IsTar(path):
+    if (".sign.tar.gz" in path or 
+        ".sign.tar.bz2" in path or 
+        ".sign.tar.lzma" in path):
+        return True
+    else:
+        return False
+
+def IsKPubInArchive(path):
+    print(path)
+    if IsZip(path):
+        f = zipfile.open(path)
+        for i in f:
+            if "key.pub" in i:
+                return True
+        return False
+
+    elif IsTar(path):
+        f = tarfile.open(path)
+        for i in f:
+            if "key.pub" in i:
+                return True
+        return False
+    else:
+        return False
+    
+def IsSignInArchive(path):
+    if IsZip(path):
+        f = zipfile.open(path)
+        for i in f:
+            if ".sign" in i:
+                return True
+        return False
+
+    elif IsTar(path):
+        f = tarfile.open(path)
+        for i in f:
+            if ".sign" in i:
+                return True
+        return False
+    else:
+        return False
