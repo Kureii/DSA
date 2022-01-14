@@ -6,19 +6,20 @@ import QtQuick.Layouts 6.0
 GridLayout {
     
     id: root
-    signal include()
-    signal dont()
+    signal yes()
+    signal no()
+    signal back()
     rowSpacing: 0
     columnSpacing: 0
-    columns: 2
+    columns: 3
 
 
     Label {
-        text: nameIncK
+        text: nameKeyExist
         font.pixelSize: 12
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        Layout.columnSpan: 2
+        Layout.columnSpan: 3
         Layout.minimumHeight: 28
         Layout.fillWidth: true
         Layout.fillHeight: false
@@ -34,8 +35,7 @@ GridLayout {
         Layout.fillWidth: true
         enabled: true
         onClicked: {
-            myData.incKey(true)
-            root.include();
+            root.yes();
         }
         background: Rectangle {
             anchors.fill: parent
@@ -43,7 +43,7 @@ GridLayout {
             radius: 0
 
             Label{
-                text: nameY
+                text: nameOverwrite
                 anchors.fill: parent
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -67,7 +67,7 @@ GridLayout {
             radius: 0
 
             Label{
-                text: nameN
+                text: nameSlcOF
                 anchors.fill: parent
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -76,8 +76,34 @@ GridLayout {
             }
         }
         onClicked: {
-            myData.incKey(false)
-            root.dont();
+            root.no();
+        }
+    }
+
+    Button {
+        Layout.fillHeight: true
+        Layout.bottomMargin: 0
+        Layout.topMargin: 0
+        Layout.minimumHeight: 32
+        Layout.maximumHeight: 32
+        Layout.fillWidth: true
+        enabled: true
+        background: Rectangle {
+            anchors.fill: parent
+            color: parent.down ? myHighLighht : (parent.hovered ? Qt.lighter(myBackground, 2) : myBackground)
+            radius: 0
+
+            Label{
+                text: nameBack
+                anchors.fill: parent
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.family: "Roboto Medium"
+                color: parent.parent.down ? myUpperBar : (parent.parent.hovered ? Qt.darker(myWhiteFont, 1.25) : myWhiteFont)
+            }
+        }
+        onClicked: {
+            root.back();
         }
     }
 }

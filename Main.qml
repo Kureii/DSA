@@ -15,6 +15,9 @@ Window {
 
     property bool activeWindow: true
     property bool findKPub: false
+    property bool findSign: false
+    property bool havePub: false
+    property bool keysExist: false
 
     property string nameToolTip: ""
     property string nameAction: ""
@@ -38,7 +41,19 @@ Window {
     property string nameSlctSign: ""
     property string namePubKey: ""
     property string nameSignFile: ""
+    property string nameBack: ""
+    property string nameSelect: ""
+    property string nameVerifed: ""
+    property string nameKeyExist:""
+    property string nameOverwrite:""
+    property string nameSlcOF:""
+    property string nameMatchNF: ""
+    property string nameFileNF:""
+    property string namePubNF:""
+    property string nameSignNF:""
+
     property string folderPath: ""
+    property string verifingResult: ""
 
     property var nameZip: []
 
@@ -288,6 +303,7 @@ Window {
                         
                         onClicked: {
                             stack.pop(lang)
+                            myData.clear()
                             home.enabled = false
                         }
                     }
@@ -331,11 +347,11 @@ Window {
                         id: sign
                         visible: false
                         onButtonFile: {
-                            stack.push(proc)
+                            stack.push(proc1)
                             signFile.visible = true
                         }
                         onButtonFolder: {
-                            stack.push(proc)
+                            stack.push(proc1)
                             signFolder.visible = true
                         }
                     }
@@ -351,23 +367,45 @@ Window {
                         id: signKey
                         visible: false
                         onSelect: {
-                            stack.push(proc)
+                            stack.push(proc2)
                             getPriv.visible = true
                         }
                         onGen: {
-                            stack.push(proc)
+                            stack.push(proc2)
                             genKey.visible = true
                         }
                     }
 
-                    
-
                     SignSave {
                         id: signSave
                         visible: false
-                        onButtonClicked: {
+                        onInclude: {
+                            myData.havePubFce()
+                            if (havePub) {
+                                stack.push(signSaveAs)
+                            } else {
+                                stack.push(proc5)
+                                getPubKeyFileSign.visible = true
+                            }
+                        }
+                        onDont: {
                             stack.push(signSaveAs)
                         }
+                    }
+
+                    SignKeyExist{
+                        id: keyExist
+                        visible: false
+                        onYes: {
+                            stack.push(proc4)
+                            myData.overwrite(genKey.currentFolder)
+                            stack.push(signSave)
+                        }
+                        onNo: {
+                            stack.push(proc3)
+                            genKey.visible = true;
+                        }
+                        onBack: stack.pop(signKey)
                     }
 
                     SignSaveAs{
@@ -383,7 +421,7 @@ Window {
                         visible: false
                         onButtonClicked: {
                             home.enabled = false
-                            stack.push(proc)
+                            stack.push(proc1)
                             getVerFile.visible = true
                         }
 
@@ -397,15 +435,111 @@ Window {
 
                     SignFinal {
                         id: signFinal
-                        visible:false
-                    }
-
-                    Processing {
-                        id: proc
                         visible: false
                     }
 
+                    Processing {
+                        id: proc1
+                        visible: false
                     }
+
+                    Processing {
+                        id: proc2
+                        visible: false
+                    }
+
+                    Processing {
+                        id: proc3
+                        visible: false
+                    }
+
+                    Processing {
+                        id: proc4
+                        visible: false
+                    }
+
+                    Processing {
+                        id: proc5
+                        visible: false
+                    }
+
+                    VerifyPubKNF {
+                        id: pubKNF
+                        visible: false
+                        onBack: {
+                            stack.pop(verify)
+                        }
+                        onSelect: {
+                            stack.push(proc2)
+                            getPubKeyFileVer.visible = true
+                        }
+                    }
+
+                    VerifySignNF {
+                        id: signNF
+                        visible: false
+                        onBack: {
+                            stack.pop(verify)
+                        }
+                        onSelect: {
+                            stack.push(proc3)
+                            getSignFile.visible = true
+                        }
+                    }
+
+                    Verifed{
+                        id: verifed
+                        visible: false
+                        onBack: {
+                            stack.pop(lang)
+                            myData.clear()
+                            home.enabled = false
+                        }
+                    }
+
+                    VerifyFileNotFound {
+                        id: verifyFileNotFound
+                        visible: false
+                        onBack: {
+                            stack.pop(lang)
+                            myData.clear()
+                            home.enabled = false
+                        }
+                    }
+
+                    VerifyMatchNotFound {
+                        id: verifyMatchNotFound
+                        visible: false
+                        onBack: {
+                            stack.pop(lang)
+                            myData.clear()
+                            home.enabled = false
+                        }
+                    }
+
+                    VerifyPubNotFound {
+                        id: verifyPubNotFound
+                        visible: false
+                        onBack: {
+                            stack.pop(lang)
+                            myData.clear()
+                            home.enabled = false
+                        }
+                    }
+
+                    VerifySignNotFound {
+                        id: verifySignNotFound
+                        visible: false
+                        onBack: {
+                            stack.pop(lang)
+                            myData.clear()
+                            home.enabled = false
+                        }
+                    }
+
+                    }
+
+                    // visual repair (window border)
                     Rectangle{
                         anchors.left: parent.left
                         anchors.bottom: parent.bottom
@@ -427,10 +561,11 @@ Window {
         }
     }
 
+
+    // select file to sign
     FileDialog {
         id: signFile 
         visible: false
-        //nameFilters: [ "Text files (*.txt)"]
         flags: FileDialog.ReadOnly
         onAccepted: {
             //var url = /String(fileDialog.currentFile)
@@ -450,29 +585,22 @@ Window {
         }
     }
 
+    // select private key
     FileDialog {
         id: getPriv 
         visible: false
         nameFilters: [namePrivKeyFilter]
         flags: FileDialog.ReadOnly
         onAccepted: {
-            //var url = /String(fileDialog.currentFile)
-            //var index = 0
-            //var urlCh = url.split("")
-            //for (let i =0; i <url.length; i++){
-            //    if(urlCh[i] === "/") {index = i + 1;}
-            //}
-            //var filename = url.substring(index);
-            //fileState.text = filename
-            //fileState2.text = filename
-            
-            stack.push(signKey)
+            myData.getPrivKey(getPriv.currentFile)
+            stack.push(signSave)
         }
         onRejected: {
             stack.pop(sign)
         }
     }
 
+    // select file to verify
     FileDialog {
         id: getVerFile 
         visible: false
@@ -480,10 +608,27 @@ Window {
         flags: FileDialog.ReadOnly
         onAccepted: {
             myData.findKeyPub(getVerFile.currentFile)
+            myData.findSignature(getVerFile.currentFile)
+            myData.getVerifyFile(getVerFile.currentFile)
             if (findKPub) {
-                stack.push(signKey)
+                if (findSign){
+                    myData.verify()
+                    if (verifingResult == "ok") { // verifed
+                        stack.push(verifed)
+                    } else if (verifingResult == "err4") { //err4 – signature dont match
+                        stack.push(verifyMatchNotFound)
+                    } else if (verifingResult == "err1") { //err1 .sign not found
+                        stack.push(verifyPubNotFound)
+                    } else if (verifingResult == "err2") { //err2 key.pub not found
+                        stack.push(verifySignNotFound)
+                    } else { //err3 main file not found
+                        stack.push(verifyFileNotFound)
+                    }
+                } else {
+                    stack.push(signNF)
+                }
             } else {
-                getPubKeyFile.visible = true
+                stack.push(pubKNF)
             }
         }
         onRejected: {
@@ -491,18 +636,47 @@ Window {
         }
     }
 
+    // select public key for sign archive
     FileDialog {
-        id: getPubKeyFile 
+        id: getPubKeyFileSign
         visible: false
         flags: FileDialog.ReadOnly
         title: nameSlctPubKey
         nameFilters: [namePubKey]
         onAccepted: {
-            myData.findKeyPub(getVerFile.currentFile)
-            if (findKPub) {
-                stack.push(signKey)
+            myData.loadPubKS(getPubKeyFileSign.currentFile)
+            stack.push(signSaveAs)
+        }
+        onRejected: {
+            stack.pop(signSave)
+        }
+    }
+
+    // select public key for verify
+    FileDialog {
+        id: getPubKeyFileVer 
+        visible: false
+        flags: FileDialog.ReadOnly
+        title: nameSlctPubKey
+        nameFilters: [namePubKey]
+        onAccepted: {
+            myData.loadPubKV(getPubKeyFileVer.currentFile)
+            myData.findSignature(getVerFile.currentFile)
+            if (findSign){
+                myData.verify()
+                if (verifingResult == "ok") { // verifed
+                    stack.push(verifed)
+                } else if (verifingResult == "err4") { //err4 – signature dont match
+                    stack.push(verifyMatchNotFound)
+                } else if (verifingResult == "err1") { //err1 .sign not found
+                    stack.push(verifyPubNotFound)
+                } else if (verifingResult == "err2") { //err2 key.pub not found
+                    stack.push(verifySignNotFound)
+                } else { //err3 main file not found
+                    stack.push(verifyFileNotFound)
+                }
             } else {
-                stack.pop(verify)
+                stack.push(signNF)
             }
         }
         onRejected: {
@@ -510,6 +684,7 @@ Window {
         }
     }
 
+    // select .sign for verify
     FileDialog {
         id: getSignFile 
         visible: false
@@ -517,11 +692,19 @@ Window {
         title: nameSlctSign
         nameFilters: [nameSignFile]
         onAccepted: {
-            myData.findKeyPub(getVerFile.currentFile)
-            if (findKPub) {
-                stack.push(signKey)
-            } else {
-                stack.pop(verify)
+            myData.getSignature(getSignFile.currentFile)
+            myData.verify()
+            console.log(verifingResult);
+            if (verifingResult == "ok") { // verifed
+                stack.push(verifed)
+            } else if (verifingResult == "err4") { //err4 – signature dont match
+                stack.push(verifyMatchNotFound)
+            } else if (verifingResult == "err1") { //err1 .sign not found
+                stack.push(verifyPubNotFound)
+            } else if (verifingResult == "err2") { //err2 key.pub not found
+                stack.push(verifySignNotFound)
+            } else { //err3 main file not found
+                stack.push(verifyFileNotFound)
             }
         }
         onRejected: {
@@ -529,22 +712,12 @@ Window {
         }
     }
 
+    // select folder for sign
     FolderDialog {
         id: signFolder 
         visible: false
-        //nameFilters: [ "Text files (*.txt)"]
-        //selectFolder: true
         options: FolderDialog.ReadOnly
         onAccepted: {
-            //var url = /String(fileDialog.currentFile)
-            //var index = 0
-            //var urlCh = url.split("")
-            //for (let i =0; i <url.length; i++){
-            //    if(urlCh[i] === "/") {index = i + 1;}
-            //}
-            //var filename = url.substring(index);
-            //fileState.text = filename
-            //fileState2.text = filename
             folderPath = signFolder.currentFolder
             stack.push(signFolderPage)
         }
@@ -553,40 +726,45 @@ Window {
         }
     }
 
+    // select forder for generate keys
     FolderDialog {
         id: genKey 
         visible: false
-        //nameFilters: [ "Text files (*.txt)"]
-        //selectFolder: true
-        //options: FolderDialog.ReadOnly
         onAccepted: {
-            //var url = /String(fileDialog.currentFile)
-            //var index = 0
-            //var urlCh = url.split("")
-            //for (let i =0; i <url.length; i++){
-            //    if(urlCh[i] === "/") {index = i + 1;}
-            //}
-            //var filename = url.substring(index);
-            //fileState.text = filename
-            //fileState2.text = filename
             myData.keyGen(genKey.currentFolder)
-            stack.push(signSave)
+            if (keysExist) {
+                stack.push(keyExist)
+                stack.pop(keyExist)
+            } else {
+                stack.push(signSave)
+            }
         }
         onRejected: {
             stack.pop(signKey)
         }
     }
 
-
+    // data
     Connections {
         target: myData
         function onFindKPub(x) {
             findKPub = x
         }
-        
-        
+        function onFindSign(x) {
+            findSign = x
+        }
+        function onHavePub(x) {
+            havePub = x
+        }
+        function onKeysExist(x) {
+            keysExist = x
+        }
+        function onVerifingResult(x) {
+            verifingResult = x
+        }
     }
 
+    // language
     Connections {
         target: myLang
         function onNameToolTip(x) {
@@ -656,8 +834,37 @@ Window {
             namePubKey = x
         }
         function onNameSignFile(x){
-            nameSignFile = x
-            
+            nameSignFile = x 
+        }
+        function onNameBack(x) {
+            nameBack = x
+        }
+        function onNameVerifed(x) {
+            nameVerifed = x           
+        }
+        function onNameSelect(x) {
+            nameSelect = x
+        }
+        function onNameKeyExist(x) {
+            nameKeyExist = x
+        }
+        function onNameOverwrite(x) {
+            nameOverwrite = x
+        }        
+        function onNameSlcOF(x) {
+            nameSlcOF = x
+        }
+        function onNameMatchNF(x) {
+            nameMatchNF = x
+        }
+        function onNameFileNF(x) {
+            nameFileNF = x
+        }
+        function onNamePubNF(x) {
+            namePubNF = x
+        }
+        function onNameSignNF(x) {
+            nameSignNF = x
         }
     }
 

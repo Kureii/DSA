@@ -1,5 +1,5 @@
 import base64
-from os import name, path, rename
+from os import path, rename, remove
 import Fce
 from Lang import appLang
 from PySide6.QtCore import QObject, Slot, Signal
@@ -15,62 +15,64 @@ class GetData(QObject):
     pubKey = []
     includePub = False
     wasFolder = False
+    signed = False
     pubKeyPath = ""
     file = ""
+    signature = ""
+
 
     findKPub = Signal(bool)
+    findSign = Signal(bool)
+    havePub = Signal(bool)
+    keysExist = Signal(bool)
+    verifingResult = Signal(str)
 
     @Slot(str)
     def getFile(self, file):
-        # windows
-        if name == "nt":
-            self.file = file[8:]
-        # unix
-        else:
-            self.file = file[7:]
+        self.file = Fce.ToSysPath(file)
         self.wasFolder = False
 
     @Slot(str, str)
-    def getFolder(self, mypath, type):
-        # windows
-        if name == "nt":
-            mypath = mypath[8:]
-        # unix
-        else:
-            mypath = mypath[7:]
-        myformat = ""
-        # tar
-        if type == ".tar.gz":
-            myformat = "w:gz"
-        elif type == ".tar.bz2":
-            myformat = "w:bz2"
-        elif type == ".tar.lzma":
-            myformat = "w:xz"
-        
+    def getFolder(self, mypath, suffix):
+        mypath = Fce.ToSysPath(mypath)
         # special chars
         mypath = unquote(mypath) 
         # create archive in program folder
-        Fce.makeArchive(path.basename(mypath) + type, mypath, myformat) 
+        Fce.makeArchive(path.basename(mypath) + suffix, mypath) 
         # move archive to final folder
-        rename(path.basename(mypath) + type, mypath + type) 
-        self.file = mypath + type
+        rename(path.basename(mypath) + suffix, mypath + suffix) 
+        self.file = mypath + suffix
         self.wasFolder = True
 
     @Slot(str)
-    def keyGen(self, folder):
-        if name == "nt":
-            Folder = folder[8:]
-        else:
-            Folder = folder[7:]
-        Fce.makePrivPub(Folder)
-        keys = open(Folder + "/key.priv", "rb")
-        keys = keys.read()
-        keys = keys.split(b"+/")
+    def getPrivKey(self, key):
+        key = Fce.ToSysPath(key)
+        k = open(key, "rb")
+        privK = k.read()
+        k.close()
+        privK = privK.split(b'+/')
         self.privKey = []
-        self.pubKeyPath = Folder + "/key.pub"
-        for i in keys:
+        for i in privK:
             tmp = base64.b64decode(i)
             self.privKey.append(int(tmp))
+
+
+    @Slot(str)
+    def keyGen(self, folder):
+        Folder =Fce.ToSysPath(folder)
+        print(path.isfile(Folder + "/key.priv") or path.isfile(Folder + "/key.pub"))
+        if path.isfile(Folder + "/key.priv") or path.isfile(Folder + "/key.pub"):
+            self.keysExist.emit(True)
+        else:
+            Fce.makePrivPub(Folder)
+            with open(Folder + "/key.priv", "rb") as keys:
+                privK = keys.read()
+            privK = privK.split(b"+/")
+            self.privKey = [int(base64.b64decode(privK[0])), int(base64.b64decode(privK[1]))]
+            self.pubKeyPath = Folder + "/key.pub"
+            for i in privK:
+                tmp = base64.b64decode(i)
+                self.privKey.append(int(tmp))
 
     @Slot(bool)
     def incKey(self, YN):
@@ -79,34 +81,90 @@ class GetData(QObject):
     @Slot(str)
     def sign(self, suffix):
         mypath = self.file[:len(self.file) - len(path.basename(self.file))]
-        Fce.makeSign(mypath, self.file, self.privKey, self.pubKeyPath, self.includePub, suffix, wasFolder=self.wasFolder)
+        self.signed = Fce.makeSign(mypath, self.file, self.privKey, self.pubKeyPath,
+                                   self.includePub, suffix, wasFolder=self.wasFolder)
 
     @Slot(str)
     def findKeyPub(self, file):
-        # windows
-        if name == "nt":
-            file = file[8:]
-        # unix
-        else:
-            file = file[7:]
+        file = Fce.ToSysPath(file)
         #is zipped
         if Fce.IsKPubInArchive(file):
             self.findKPub.emit(True)
         else:
-            print(len(path.basename(file)))
             tmppath = file[:len(file) - len(path.basename(file))]  + "key.pub"
-            print(tmppath)
             self.findKPub.emit(path.isfile(tmppath))
 
     @Slot(str)
     def findSignature(self, file):
-        # windows
-        if name == "nt":
-            file = file[8:]
-        # unix
-        else:
-            file = file[7:]
-        self.Fce.IsSignInArchive(file)
+        file = Fce.ToSysPath(file)
+        self.findSign.emit(Fce.IsSignInArchive(file))
+
+    @Slot(str)
+    def loadPubKV(self, file):
+        key = Fce.ToSysPath(file)
+        key = open(key)
+        pubK = key.read()
+        key.close()
+        self.pubKey = []
+        for i in pubK:
+            tmp = base64.b64decode(i)
+            self.pubKey.append(int(tmp))
+
+    @Slot(str)
+    def loadPubKS(self, file):
+        self.pubKeyPath = Fce.ToSysPath(file)
+    
+    @Slot()
+    def havePubFce(self):
+        print("havepub?")
+        self.havePub.emit(not self.pubKeyPath == "")
+
+    @Slot(str)
+    def overwrite(self, file):
+        Folder = Fce.ToSysPath(file)
+        Fce.makePrivPub(Folder)
+        with open(Folder + "/key.priv", "rb") as keys:
+            privK = keys.read()
+        privK = privK.split(b"+/")
+        self.privKey = [int(base64.b64decode(privK[0])), int(base64.b64decode(privK[1]))]
+        self.pubKeyPath = Folder + "/key.pub"
+        for i in privK:
+            tmp = base64.b64decode(i)
+            self.privKey.append(int(tmp))
+
+    @Slot()
+    def clear(self):
+        self.havePub.emit(False)
+        self.findKPub.emit(False)
+        self.findSign.emit(False)
+        self.privKey = []
+        self.pubKey = []
+        self.includePub = False
+        if self.wasFolder and not self.signed:
+            remove(self.file)
+        self.wasFolder = False
+        self.signed = False
+        self.pubKeyPath = ""
+        self.file = ""
+        self.signature = ""
+
+    @Slot(str)
+    def getSignature(self, file):
+        file = Fce.ToSysPath(file)
+        with open(file) as f:
+            self.signature = f.read()
+
+    @Slot(str)
+    def getVerifyFile(self, file):
+        self.file = Fce.ToSysPath(file)
+
+
+    @Slot()
+    def verify(self):
+        print(f"self.file: {self.file}")
+        self.verifingResult.emit(Fce.Verify(self.file, self.pubKey, self.signature))
+
+    
 
 #<|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|>
 
@@ -137,6 +195,16 @@ class Language(QObject):
     nameSlctSign = Signal(str)
     namePubKey = Signal(str)
     nameSignFile = Signal(str)
+    nameBack = Signal(str)
+    nameSelect = Signal(str)
+    nameVerifed =Signal(str)
+    nameKeyExist = Signal(str)
+    nameOverwrite = Signal(str)
+    nameSlcOF = Signal(str)
+    nameMatchNF = Signal(str)
+    nameFileNF = Signal(str)
+    namePubNF = Signal(str)
+    nameSignNF = Signal(str)
 
     @Slot(str)
     def getLang(self, lng):
@@ -164,4 +232,13 @@ class Language(QObject):
         self.nameSlctSign.emit(myLang['nameSlctSign'])
         self.namePubKey.emit(myLang['namePubKey'])
         self.nameSignFile.emit(myLang['nameSignFile'])
-        
+        self.nameBack.emit(myLang['nameBack'])
+        self.nameSelect.emit(myLang['nameSelect'])
+        self.nameVerifed.emit(myLang['nameVerifed'])
+        self.nameKeyExist.emit(myLang['nameKeyExist'])
+        self.nameOverwrite.emit(myLang['nameOverwrite'])
+        self.nameSlcOF.emit(myLang['nameSlcOF'])
+        self.nameMatchNF.emit(myLang['nameMatchNF'])
+        self.nameFileNF.emit(myLang['nameFileNF'])
+        self.namePubNF.emit(myLang['namePubNF'])
+        self.nameSignNF.emit(myLang['nameSignNF'])

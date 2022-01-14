@@ -18,10 +18,20 @@ cs_CZ = {
     "nameZip": ["Standartní (*.zip)", "7zip (*7z)", "rar (*.rar)","unix gzip (*.tar.gzip)", "unix bzip2 (*.tar.bz2)", "unix lzma (*tar.lzma)"],
     "nameSignFinal": "Hotovo, soubor/složka je pedepsaný/á",
     "nameSlctVerFile": "Vyberte soubor pro ověření",
-    "nameSlctPubKey": "Klíč nenalezen, vyberte klíč",
-    "nameSlctSign":"Podpisový soubor nenalezen, vyberte jej",
+    "nameSlctPubKey": "Veřejný klíč nenalezen",
+    "nameSlctSign":"Podpisový soubor nenalezen",
     "namePubKey":"Veřejný klíč (key.pub)",
-    "nameSignFile":"Podpisový soubor (*.sign)"
+    "nameSignFile":"Podpisový soubor (*.sign)",
+    "nameBack": "Zpět",
+    "nameSelect": "Vybrat",
+    "nameVerifed":"Ověření proběhlo úspěšně",
+    "nameKeyExist": "Klíč již existuje",
+    "nameOverwrite": "Přepsat",
+    "nameSlcOF": "Nová cesta",
+    "nameMatchNF":"Podpisy se neshodují",
+    "nameFileNF":"Soubor pro ověření nenalezen",
+    "namePubNF":"Klíč key.pub nenalezen",
+    "nameSignNF":"Soubor .sign nenalezen",
 }
 
 eng_US = {
@@ -44,10 +54,20 @@ eng_US = {
     "nameZip": ["Standart (*.zip)", "7zip (*7z)", "rar (*.rar)","unix gzip (*.tar.gzip)", "unix bzip2 (*.tar.bz2)", "unix lzma (*tar.lzma)"],
     "nameSignFinal": "Done, file/folder is signed",
     "nameSlctVerFile": "Select file to verify",
-    "nameSlctPubKey": "Key not found, select key",
-    "nameSlctSign":"Signed file not found, select it",
+    "nameSlctPubKey": "Public key not found",
+    "nameSlctSign":"Sign file not found",
     "namePubKey": "Public key (key.pub)",
-    "nameSignFile": "Signed file (*.sign)"
+    "nameSignFile": "Signed file (*.sign)",
+    "nameBack": "Back",
+    "nameSelect": "Select",
+    "nameVerifed": "Verification was successful",
+    "nameKeyExist": "Keys alredy exist",
+    "nameOverwrite": "Overwrite",
+    "nameSlcOF": "New path",
+    "nameMatchNF":"Signatures do not match",
+    "nameFileNF":"Authentication file not found",
+    "namePubNF":"key.pub file not found",
+    "nameSignNF":".sign file not found",
 }
 appLang = {
     "cs_CZ": cs_CZ,

@@ -6,15 +6,15 @@ import QtQuick.Layouts 6.0
 GridLayout {
     
     id: root
-    signal include()
-    signal dont()
+    signal back();
+    signal select()
     rowSpacing: 0
     columnSpacing: 0
     columns: 2
 
 
     Label {
-        text: nameIncK
+        text: nameSlctPubKey
         font.pixelSize: 12
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -34,8 +34,7 @@ GridLayout {
         Layout.fillWidth: true
         enabled: true
         onClicked: {
-            myData.incKey(true)
-            root.include();
+            root.back();
         }
         background: Rectangle {
             anchors.fill: parent
@@ -43,7 +42,7 @@ GridLayout {
             radius: 0
 
             Label{
-                text: nameY
+                text: nameBack
                 anchors.fill: parent
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -67,7 +66,7 @@ GridLayout {
             radius: 0
 
             Label{
-                text: nameN
+                text: nameSelect
                 anchors.fill: parent
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -76,8 +75,7 @@ GridLayout {
             }
         }
         onClicked: {
-            myData.incKey(false)
-            root.dont();
+            root.select();
         }
     }
 }
